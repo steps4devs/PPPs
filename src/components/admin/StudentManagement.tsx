@@ -102,19 +102,87 @@ export function StudentManagement() {
 
   const handleSaveStudent = async () => {
     try {
+      // Validaciones
+      if (!formData.nombre?.trim()) {
+        toast.error('El nombre es obligatorio');
+        return;
+      }
+      if (!formData.apellido?.trim()) {
+        toast.error('El apellido es obligatorio');
+        return;
+      }
+      if (!formData.email?.trim()) {
+        toast.error('El email es obligatorio');
+        return;
+      }
+      if (!formData.code?.trim()) {
+        toast.error('El código de estudiante es obligatorio');
+        return;
+      }
+      if (!formData.careerId || formData.careerId === 0) {
+        toast.error('La carrera es obligatoria');
+        return;
+      }
+      if (!formData.semester || formData.semester < 1) {
+        toast.error('El semestre debe ser al menos 1');
+        return;
+      }
+
       if (editingStudent) {
-        // Modo edición - solo enviar password si se cambió
-        const updateData: any = { ...formData };
-        if (!updateData.password) {
-          delete updateData.password; // No actualizar password si está vacío
+        // Modo edición
+        const updateData: any = {
+          code: formData.code.trim(),
+          careerId: formData.careerId,
+          semester: formData.semester,
+          phone: formData.phone?.trim() || undefined,
+          nombre: formData.nombre.trim(),
+          apellido: formData.apellido.trim(),
+          email: formData.email.trim(),
+        };
+        
+        // Solo enviar password si se cambió
+        if (formData.password?.trim()) {
+          if (formData.password.length < 6) {
+            toast.error('La contraseña debe tener al menos 6 caracteres');
+            return;
+          }
+          updateData.password = formData.password;
         }
+        
         await adminService.updateStudent(editingStudent.id, updateData);
         toast.success('Estudiante actualizado exitosamente');
       } else {
+        // Validaciones adicionales para creación
+        if (!formData.username?.trim()) {
+          toast.error('El nombre de usuario es obligatorio');
+          return;
+        }
+        if (!formData.password?.trim()) {
+          toast.error('La contraseña es obligatoria');
+          return;
+        }
+        if (formData.password.length < 6) {
+          toast.error('La contraseña debe tener al menos 6 caracteres');
+          return;
+        }
+
         // Modo creación
-        await adminService.createStudent(formData);
+        const createData = {
+          username: formData.username.trim(),
+          email: formData.email.trim(),
+          password: formData.password,
+          nombre: formData.nombre.trim(),
+          apellido: formData.apellido.trim(),
+          code: formData.code.trim(),
+          careerId: formData.careerId,
+          semester: formData.semester,
+          phone: formData.phone?.trim() || undefined,
+        };
+        
+        await adminService.createStudent(createData);
         toast.success('Estudiante creado exitosamente');
       }
+      
       setOpenDialog(false);
       setEditingStudent(null);
       loadStudents();
@@ -251,26 +319,28 @@ export function StudentManagement() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="nombre">Nombre</Label>
+                  <Label htmlFor="nombre">Nombre <span className="text-red-500">*</span></Label>
                   <Input 
                     id="nombre" 
                     placeholder="Ej: Juan" 
                     value={formData.nombre}
                     onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="apellido">Apellido</Label>
+                  <Label htmlFor="apellido">Apellido <span className="text-red-500">*</span></Label>
                   <Input 
                     id="apellido" 
                     placeholder="Ej: Pérez García" 
                     value={formData.apellido}
                     onChange={(e) => setFormData({...formData, apellido: e.target.value})}
+                    required
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="username">Usuario</Label>
+                <Label htmlFor="username">Usuario <span className="text-red-500">*</span></Label>
                 <Input 
                   id="username" 
                   placeholder="Ej: jperez" 
@@ -278,26 +348,28 @@ export function StudentManagement() {
                   onChange={(e) => setFormData({...formData, username: e.target.value})}
                   disabled={!!editingStudent}
                   className={editingStudent ? "bg-gray-100 cursor-not-allowed" : ""}
+                  required={!editingStudent}
                 />
                 {editingStudent && (
                   <p className="text-xs text-gray-500">El nombre de usuario no puede modificarse</p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
                 <Input 
                   id="email" 
                   type="email" 
                   placeholder="estudiante@universidad.edu" 
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  required
                 />
               </div>
               
               {/* Campo contraseña solo visible al CREAR (no al editar) */}
               {!editingStudent && (
                 <div className="space-y-2">
-                  <Label htmlFor="password">Contraseña</Label>
+                  <Label htmlFor="password">Contraseña <span className="text-red-500">*</span></Label>
                   <Input 
                     id="password" 
                     type="password" 
@@ -305,24 +377,28 @@ export function StudentManagement() {
                     value={formData.password}
                     onChange={(e) => setFormData({...formData, password: e.target.value})}
                     required
+                    minLength={6}
                   />
+                  <p className="text-xs text-gray-500">Mínimo 6 caracteres</p>
                 </div>
               )}
               
               <div className="space-y-2">
-                <Label htmlFor="codigo">Código</Label>
+                <Label htmlFor="codigo">Código <span className="text-red-500">*</span></Label>
                 <Input 
                   id="codigo" 
                   placeholder="Ej: E20201234" 
                   value={formData.code}
                   onChange={(e) => setFormData({...formData, code: e.target.value})}
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="career">Carrera</Label>
+                <Label htmlFor="career">Carrera <span className="text-red-500">*</span></Label>
                 <Select 
                   value={formData.careerId.toString()} 
                   onValueChange={(value: string) => setFormData({...formData, careerId: parseInt(value)})}
+                  required
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona una carrera" />
@@ -338,7 +414,7 @@ export function StudentManagement() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="semester">Ciclo</Label>
+                  <Label htmlFor="semester">Ciclo <span className="text-red-500">*</span></Label>
                   <Input 
                     id="semester" 
                     type="number" 
@@ -346,6 +422,7 @@ export function StudentManagement() {
                     max="12"
                     value={formData.semester}
                     onChange={(e) => setFormData({...formData, semester: parseInt(e.target.value)})}
+                    required
                   />
                 </div>
                 <div className="space-y-2">

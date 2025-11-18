@@ -401,6 +401,38 @@ export interface TutorStats {
   totalApprovedHours: number;
 }
 
+export interface AdminDashboardStats {
+  overview: {
+    students: number;
+    tutors: number;
+    companies: number;
+    periods: number;
+  };
+  plans: {
+    total: number;
+    approved: number;
+    pending: number;
+    rejected: number;
+  };
+  assignments: {
+    active: number;
+  };
+  agreements: {
+    active: number;
+  };
+  hours: {
+    totalApproved: number;
+  };
+  currentPeriod: {
+    id: number;
+    name: string;
+    startDate: string;
+    endDate: string;
+    open: boolean;
+    quota: number;
+  } | null;
+}
+
 export interface AdminStats {
   totalStudents: number;
   totalTutors: number;

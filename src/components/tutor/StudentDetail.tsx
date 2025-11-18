@@ -15,11 +15,11 @@ import {
   rejectPlan,
   approveTimeEntry,
   rejectTimeEntry,
-  createEvaluation,
+  getStudentEvaluations,
   getStudentEvidences,
   downloadEvidence
 } from '../../services/tutorService';
-import { Loader2, ArrowLeft, CheckCircle, XCircle, Download, FileText, FileIcon, ImageIcon, Eye } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle, XCircle, Download, FileText, FileIcon, ImageIcon, Eye, Plus, ChevronDown, ChevronUp, Edit } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,21 +36,17 @@ import { toast } from 'sonner';
 interface StudentDetailProps {
   studentId: number;
   onBack: () => void;
+  onNavigateToEvaluations?: (studentId?: number, evaluationToEdit?: any) => void;
 }
 
-export function StudentDetail({ studentId, onBack }: StudentDetailProps) {
+export function StudentDetail({ studentId, onBack, onNavigateToEvaluations }: StudentDetailProps) {
   const [loading, setLoading] = useState(true);
   const [student, setStudent] = useState<any>(null);
   const [plan, setPlan] = useState<any>(null);
   const [timeEntries, setTimeEntries] = useState<any[]>([]);
   const [evidences, setEvidences] = useState<any[]>([]);
-  const [evaluationForm, setEvaluationForm] = useState({
-    puntualidad: '',
-    trabajo: '',
-    conocimientos: '',
-    iniciativa: '',
-    comentarios: ''
-  });
+  const [evaluations, setEvaluations] = useState<any[]>([]);
+  const [expandedEvaluation, setExpandedEvaluation] = useState<number | null>(null);
 
   useEffect(() => {
     loadStudentData();
@@ -62,17 +58,21 @@ export function StudentDetail({ studentId, onBack }: StudentDetailProps) {
       
       console.log('📥 Cargando datos del estudiante:', studentId);
       
-      const [studentData, plansData, entriesData, evidencesData] = await Promise.all([
+      const [studentData, plansData, entriesData, evidencesData, evaluationsData] = await Promise.all([
         getStudentDetail(studentId),
         getStudentPlans(studentId),
         getStudentTimeEntries(studentId),
         getStudentEvidences(studentId).catch(err => {
           console.error('❌ Error cargando evidencias:', err);
           return [];
+        }),
+        getStudentEvaluations(studentId).catch(err => {
+          console.error('❌ Error cargando evaluaciones:', err);
+          return [];
         })
       ]);
       
-      console.log('✅ Datos cargados:', { studentData, plansData, entriesData, evidencesData });
+      console.log('✅ Datos cargados:', { studentData, plansData, entriesData, evidencesData, evaluationsData });
       
       setStudent(studentData);
       
@@ -86,6 +86,9 @@ export function StudentDetail({ studentId, onBack }: StudentDetailProps) {
       // Evidencias ya vienen filtradas por estudiante
       console.log('📁 Evidencias recibidas:', evidencesData);
       setEvidences(evidencesData || []);
+      
+      // Evaluaciones del estudiante
+      setEvaluations(Array.isArray(evaluationsData) ? evaluationsData : []);
     } catch (error) {
       console.error('Error loading student data:', error);
       toast.error('Error al cargar datos del estudiante');
@@ -147,47 +150,6 @@ export function StudentDetail({ studentId, onBack }: StudentDetailProps) {
     } catch (error) {
       console.error('Error rejecting hours:', error);
       toast.error('Error al rechazar horas');
-    }
-  };
-
-  const submitEvaluation = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!plan) {
-      toast.error('El estudiante debe tener un plan aprobado');
-      return;
-    }
-    
-    try {
-      await createEvaluation({
-        assignmentId: student.assignmentId || 1, // Necesitarás obtener esto del detalle
-        punctuality: parseFloat(evaluationForm.puntualidad),
-        workQuality: parseFloat(evaluationForm.trabajo),
-        technicalKnowledge: parseFloat(evaluationForm.conocimientos),
-        initiative: parseFloat(evaluationForm.iniciativa),
-        comments: evaluationForm.comentarios
-      });
-      
-      const promedio = (
-        (parseFloat(evaluationForm.puntualidad) +
-        parseFloat(evaluationForm.trabajo) +
-        parseFloat(evaluationForm.conocimientos) +
-        parseFloat(evaluationForm.iniciativa)) / 4
-      ).toFixed(1);
-      
-      toast.success('Evaluación guardada', {
-        description: `Promedio: ${promedio} - El estudiante ha sido notificado`
-      });
-      
-      setEvaluationForm({
-        puntualidad: '',
-        trabajo: '',
-        conocimientos: '',
-        iniciativa: '',
-        comentarios: ''
-      });
-    } catch (error) {
-      console.error('Error creating evaluation:', error);
-      toast.error('Error al guardar la evaluación');
     }
   };
 
@@ -531,79 +493,126 @@ export function StudentDetail({ studentId, onBack }: StudentDetailProps) {
         <TabsContent value="evaluation">
           <Card>
             <CardHeader>
-              <CardTitle>Evaluación del Estudiante</CardTitle>
-              <CardDescription>Completa la evaluación de desempeño</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Evaluaciones del Estudiante</CardTitle>
+                  <CardDescription>Historial de evaluaciones realizadas</CardDescription>
+                </div>
+                <Button 
+                  className="bg-blue-800 hover:bg-blue-900"
+                  onClick={() => onNavigateToEvaluations?.(studentId)}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nueva Evaluación
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <form onSubmit={submitEvaluation} className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="puntualidad">Puntualidad (0-20)</Label>
-                    <Input
-                      id="puntualidad"
-                      type="number"
-                      min="0"
-                      max="20"
-                      step="0.5"
-                      value={evaluationForm.puntualidad}
-                      onChange={(e) => setEvaluationForm({ ...evaluationForm, puntualidad: e.target.value })}
-                      placeholder="Ej: 18"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="trabajo">Trabajo en Equipo (0-20)</Label>
-                    <Input
-                      id="trabajo"
-                      type="number"
-                      min="0"
-                      max="20"
-                      step="0.5"
-                      value={evaluationForm.trabajo}
-                      onChange={(e) => setEvaluationForm({ ...evaluationForm, trabajo: e.target.value })}
-                      placeholder="Ej: 17"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="conocimientos">Conocimientos Técnicos (0-20)</Label>
-                    <Input
-                      id="conocimientos"
-                      type="number"
-                      min="0"
-                      max="20"
-                      step="0.5"
-                      value={evaluationForm.conocimientos}
-                      onChange={(e) => setEvaluationForm({ ...evaluationForm, conocimientos: e.target.value })}
-                      placeholder="Ej: 19"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="iniciativa">Iniciativa (0-20)</Label>
-                    <Input
-                      id="iniciativa"
-                      type="number"
-                      min="0"
-                      max="20"
-                      step="0.5"
-                      value={evaluationForm.iniciativa}
-                      onChange={(e) => setEvaluationForm({ ...evaluationForm, iniciativa: e.target.value })}
-                      placeholder="Ej: 18"
-                    />
-                  </div>
+              {evaluations.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No hay evaluaciones registradas</p>
+                  <p className="text-sm mt-2">Haz clic en "Nueva Evaluación" para crear una</p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="comentarios">Comentarios</Label>
-                  <Textarea
-                    id="comentarios"
-                    rows={4}
-                    value={evaluationForm.comentarios}
-                    onChange={(e) => setEvaluationForm({ ...evaluationForm, comentarios: e.target.value })}
-                    placeholder="Observaciones generales sobre el desempeño del estudiante..."
-                  />
+              ) : (
+                <div className="space-y-3">
+                  {evaluations.map((evaluation: any) => (
+                    <Card key={evaluation.id} className="border-l-4 border-l-blue-800">
+                      <CardContent className="py-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4 flex-1">
+                            <Badge variant="outline" className="text-blue-800 border-blue-800 text-xs">
+                              {evaluation.type === 'PARTIAL' && 'Evaluación Parcial'}
+                              {evaluation.type === 'MONTHLY' && 'Evaluación Mensual'}
+                              {evaluation.type === 'FINAL' && 'Evaluación Final'}
+                              {evaluation.type === 'PERFORMANCE' && 'Evaluación de Desempeño'}
+                              {evaluation.type === 'TECHNICAL' && 'Evaluación Técnica'}
+                            </Badge>
+                            <span className="text-sm text-gray-600">
+                              {new Date(evaluation.evaluationDate).toLocaleDateString('es-ES', {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric'
+                              })}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <p className="text-xs text-gray-600">Nota Promedio</p>
+                              <p className={`text-2xl font-bold ${
+                                evaluation.average >= 18 ? 'text-emerald-600' :
+                                evaluation.average >= 14 ? 'text-blue-600' :
+                                evaluation.average >= 11 ? 'text-amber-600' :
+                                'text-red-600'
+                              }`}>
+                                {evaluation.average.toFixed(1)}
+                              </p>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onNavigateToEvaluations?.(studentId, evaluation)}
+                                className="h-8"
+                              >
+                                <Edit className="w-4 h-4 mr-1" />
+                                Editar
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setExpandedEvaluation(expandedEvaluation === evaluation.id ? null : evaluation.id)}
+                                className="h-8"
+                              >
+                                {expandedEvaluation === evaluation.id ? (
+                                  <ChevronUp className="w-4 h-4" />
+                                ) : (
+                                  <ChevronDown className="w-4 h-4" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {expandedEvaluation === evaluation.id && (
+                          <div className="mt-3 pt-3 border-t space-y-3">
+                            <div>
+                              <p className="text-sm font-medium text-gray-700 mb-2">Criterios de Evaluación:</p>
+                              <div className="space-y-2">
+                                {evaluation.criteria.map((criterio: any, index: number) => (
+                                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                                    <span className="text-sm text-gray-900">{criterio.name}</span>
+                                    <span className={`font-semibold text-sm ${
+                                      criterio.score >= 18 ? 'text-emerald-600' :
+                                      criterio.score >= 14 ? 'text-blue-600' :
+                                      criterio.score >= 11 ? 'text-amber-600' :
+                                      'text-red-600'
+                                    }`}>
+                                      {criterio.score.toFixed(1)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            {evaluation.comments && (
+                              <div>
+                                <p className="text-sm font-medium text-gray-700 mb-2">Comentarios:</p>
+                                <p className="text-sm text-gray-900 p-2 bg-gray-50 rounded-lg">{evaluation.comments}</p>
+                              </div>
+                            )}
+                            
+                            <div className="text-xs text-gray-500 pt-2">
+                              Evaluado por: {evaluation.tutor.name} • {new Date(evaluation.evaluatedAt).toLocaleDateString('es-ES')}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-                <Button type="submit" className="bg-blue-800 hover:bg-blue-900">
-                  Guardar Evaluación
-                </Button>
-              </form>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

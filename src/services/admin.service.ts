@@ -529,11 +529,18 @@ class AdminService {
 
   async getAllCareers(): Promise<Career[]> {
     try {
-      const response = await apiClient.get<Career[]>(
-        API_ENDPOINTS.ADMIN.CAREERS
+      const response = await apiClient.get(
+        API_ENDPOINTS.CAREERS.ALL
       );
 
-      return response.data;
+      // Unwrap the response
+      if (response.data?.data && Array.isArray(response.data.data)) {
+        return response.data.data;
+      }
+      if (Array.isArray(response.data)) {
+        return response.data;
+      }
+      return [];
     } catch (error) {
       throw new Error(getErrorMessage(error));
     }
@@ -541,45 +548,80 @@ class AdminService {
 
   async getCareerById(id: number): Promise<Career> {
     try {
-      const response = await apiClient.get<Career>(
-        API_ENDPOINTS.ADMIN.CAREER_BY_ID(id)
+      const response = await apiClient.get(
+        API_ENDPOINTS.CAREERS.BY_ID(id)
       );
 
+      // Unwrap the response
+      if (response.data?.data) {
+        return response.data.data;
+      }
       return response.data;
     } catch (error) {
       throw new Error(getErrorMessage(error));
     }
   }
 
-  async createCareer(name: string): Promise<Career> {
+  // ==========================================================================
+  // DASHBOARD STATS
+  // ==========================================================================
+
+  async getDashboardStats(): Promise<any> {
     try {
-      const response = await apiClient.post<Career>(
-        API_ENDPOINTS.ADMIN.CAREERS,
-        { name }
+      const response = await apiClient.get(
+        API_ENDPOINTS.DASHBOARD.ADMIN_STATS
       );
 
+      // Unwrap the response
+      if (response.data?.data) {
+        return response.data.data;
+      }
       return response.data;
     } catch (error) {
       throw new Error(getErrorMessage(error));
     }
   }
 
-  async updateCareer(id: number, name: string): Promise<Career> {
+  async getPlansByMonth(months: number = 6): Promise<any[]> {
     try {
-      const response = await apiClient.put<Career>(
-        API_ENDPOINTS.ADMIN.CAREER_BY_ID(id),
-        { name }
+      const response = await apiClient.get(
+        `${API_ENDPOINTS.REPORTS.ADMIN_REPORTS}/plans-by-month?months=${months}`
       );
 
+      if (response.data?.data) {
+        return response.data.data;
+      }
       return response.data;
     } catch (error) {
       throw new Error(getErrorMessage(error));
     }
   }
 
-  async deleteCareer(id: number): Promise<void> {
+  async getHoursByWeek(weeks: number = 6): Promise<any[]> {
     try {
-      await apiClient.delete(API_ENDPOINTS.ADMIN.CAREER_BY_ID(id));
+      const response = await apiClient.get(
+        `${API_ENDPOINTS.REPORTS.ADMIN_REPORTS}/hours-by-week?weeks=${weeks}`
+      );
+
+      if (response.data?.data) {
+        return response.data.data;
+      }
+      return response.data;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  }
+
+  async getStudentsByCompany(): Promise<any[]> {
+    try {
+      const response = await apiClient.get(
+        `${API_ENDPOINTS.REPORTS.ADMIN_REPORTS}/students-by-company`
+      );
+
+      if (response.data?.data) {
+        return response.data.data;
+      }
+      return response.data;
     } catch (error) {
       throw new Error(getErrorMessage(error));
     }
@@ -588,3 +630,4 @@ class AdminService {
 
 // Exportar instancia única (Singleton)
 export default new AdminService();
+

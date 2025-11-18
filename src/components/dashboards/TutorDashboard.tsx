@@ -3,15 +3,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Users, CheckCircle, Clock, AlertCircle, Loader2 } from 'lucide-react';
 import { StudentList } from '../tutor/StudentList';
 import { StudentDetail } from '../tutor/StudentDetail';
+import { EvaluationManagement } from '../tutor/EvaluationManagement';
 import { getTutorDashboardStats, getTutorRecentActivities } from '../../services/tutorService';
 import { TutorDashboardStats, RecentActivity } from '../../types/tutor';
 
 interface TutorDashboardProps {
   currentView: string;
+  onViewChange?: (view: string) => void;
 }
 
-export function TutorDashboard({ currentView }: TutorDashboardProps) {
+export function TutorDashboard({ currentView, onViewChange }: TutorDashboardProps) {
   const [selectedStudent, setSelectedStudent] = useState<number | null>(null);
+  const [preselectedStudentForEvaluation, setPreselectedStudentForEvaluation] = useState<number | undefined>(undefined);
+  const [evaluationToEdit, setEvaluationToEdit] = useState<any>(undefined);
   const [stats, setStats] = useState<TutorDashboardStats | null>(null);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,11 +77,25 @@ export function TutorDashboard({ currentView }: TutorDashboardProps) {
     }
   };
 
-  if (currentView === 'students' || currentView === 'evaluations') {
+  if (currentView === 'students') {
     if (selectedStudent) {
-      return <StudentDetail studentId={selectedStudent} onBack={() => setSelectedStudent(null)} />;
+      return (
+        <StudentDetail 
+          studentId={selectedStudent} 
+          onBack={() => setSelectedStudent(null)}
+          onNavigateToEvaluations={(studentId, evaluation) => {
+            setPreselectedStudentForEvaluation(studentId);
+            setEvaluationToEdit(evaluation);
+            onViewChange?.('evaluations');
+          }}
+        />
+      );
     }
     return <StudentList onSelectStudent={setSelectedStudent} />;
+  }
+
+  if (currentView === 'evaluations') {
+    return <EvaluationManagement preselectedStudentId={preselectedStudentForEvaluation} evaluationToEdit={evaluationToEdit} />;
   }
 
   if (loading) {

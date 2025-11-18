@@ -44,6 +44,7 @@ export interface AssignedStudent {
   active: boolean;
   company: string | null;
   planStatus: 'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED' | null;
+  planId?: number;
   pendingHours: number;
   totalApprovedHours: number;
 }
@@ -120,27 +121,41 @@ export interface PlanForReview {
   submittedAt: string;
 }
 
-// Evaluation Form
+// Evaluation Types
+export type EvaluationType = 'PARTIAL' | 'MONTHLY' | 'FINAL' | 'PERFORMANCE' | 'TECHNICAL';
+
+export interface EvaluationCriterion {
+  id?: number;
+  name: string;
+  score: number;
+}
+
 export interface EvaluationFormData {
-  assignmentId: number;
-  punctuality: number;
-  workQuality: number;
-  technicalKnowledge: number;
-  initiative: number;
-  comments: string;
+  studentId: number;
+  planId: number;
+  type: EvaluationType;
+  criteria: EvaluationCriterion[];
+  evaluationDate?: string;
+  comments?: string;
 }
 
 export interface Evaluation {
   id: number;
-  assignmentId: number;
+  type: EvaluationType;
+  tutor: {
+    id: number;
+    name: string;
+  };
+  studentId: number;
   studentName: string;
-  punctuality: number;
-  workQuality: number;
-  technicalKnowledge: number;
-  initiative: number;
+  studentCode: string;
+  planId: number;
+  criteria: EvaluationCriterion[];
   average: number;
-  comments: string;
+  evaluationDate: string;
+  comments: string | null;
   evaluatedAt: string;
+  createdAt: string;
 }
 
 // Recent Activity

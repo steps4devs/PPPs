@@ -38,7 +38,7 @@ function AppContent() {
     if (userRole.includes('STUDENT')) {
       return <StudentDashboard currentView={currentView} onNavigate={setCurrentView} />;
     } else if (userRole.includes('TUTOR')) {
-      return <TutorDashboard currentView={currentView} />;
+      return <TutorDashboard currentView={currentView} onViewChange={setCurrentView} />;
     } else if (userRole.includes('ADMIN')) {
       return <AdminDashboard currentView={currentView} />;
     }

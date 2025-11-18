@@ -5,7 +5,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Label } from '../ui/label';
 import { Search, Plus, Edit, Trash2, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
@@ -65,7 +65,7 @@ export function TutorManagement() {
     }
   };
 
-  const handleEdit = (tutor: TutorProfile) {
+  const handleEdit = (tutor: TutorProfile): void => {
     setEditingTutor(tutor);
     setFormData({
       username: tutor.username || '',
@@ -82,22 +82,69 @@ export function TutorManagement() {
 
   const handleSaveTutor = async () => {
     try {
+      // Validaciones
+      if (!formData.nombre?.trim()) {
+        toast.error('El nombre es obligatorio');
+        return;
+      }
+      if (!formData.apellido?.trim()) {
+        toast.error('El apellido es obligatorio');
+        return;
+      }
+      if (!formData.email?.trim()) {
+        toast.error('El email es obligatorio');
+        return;
+      }
+      if (!formData.specialty?.trim()) {
+        toast.error('La especialidad es obligatoria');
+        return;
+      }
+      if (!formData.maxStudents || formData.maxStudents < 1) {
+        toast.error('El máximo de estudiantes debe ser al menos 1');
+        return;
+      }
+
       if (editingTutor) {
         // Actualizar tutor existente
         const updateData: any = {
-          specialty: formData.specialty,
+          specialty: formData.specialty.trim(),
           maxStudents: formData.maxStudents,
           careerId: formData.careerId > 0 ? formData.careerId : undefined,
-          nombre: formData.nombre,
-          apellido: formData.apellido,
-          email: formData.email,
+          nombre: formData.nombre.trim(),
+          apellido: formData.apellido.trim(),
+          email: formData.email.trim(),
         };
         
         await adminService.updateTutor(editingTutor.id, updateData);
         toast.success('Tutor actualizado exitosamente');
       } else {
+        // Validaciones adicionales para creación
+        if (!formData.username?.trim()) {
+          toast.error('El nombre de usuario es obligatorio');
+          return;
+        }
+        if (!formData.password?.trim()) {
+          toast.error('La contraseña es obligatoria');
+          return;
+        }
+        if (formData.password.length < 6) {
+          toast.error('La contraseña debe tener al menos 6 caracteres');
+          return;
+        }
+
         // Crear nuevo tutor
-        await adminService.createTutor(formData);
+        const createData = {
+          username: formData.username.trim(),
+          email: formData.email.trim(),
+          password: formData.password,
+          nombre: formData.nombre.trim(),
+          apellido: formData.apellido.trim(),
+          specialty: formData.specialty.trim(),
+          maxStudents: formData.maxStudents,
+          careerId: formData.careerId > 0 ? formData.careerId : undefined,
+        };
+        
+        await adminService.createTutor(createData);
         toast.success('Tutor creado exitosamente');
       }
       
@@ -191,29 +238,31 @@ export function TutorManagement() {
               {editingTutor ? 'Actualiza la información del tutor' : 'Completa la información del nuevo tutor'}
             </DialogDescription>
           </DialogHeader>
-            <div className="space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); handleSaveTutor(); }} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="nombre">Nombre</Label>
+                  <Label htmlFor="nombre">Nombre <span className="text-red-500">*</span></Label>
                   <Input 
                     id="nombre" 
                     placeholder="Ej: Roberto" 
                     value={formData.nombre}
                     onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="apellido">Apellido</Label>
+                  <Label htmlFor="apellido">Apellido <span className="text-red-500">*</span></Label>
                   <Input 
                     id="apellido" 
                     placeholder="Ej: Gómez Silva" 
                     value={formData.apellido}
                     onChange={(e) => setFormData({...formData, apellido: e.target.value})}
+                    required
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="username">Usuario</Label>
+                <Label htmlFor="username">Usuario <span className="text-red-500">*</span></Label>
                 <Input 
                   id="username" 
                   placeholder="Ej: rgomez" 
@@ -221,26 +270,28 @@ export function TutorManagement() {
                   onChange={(e) => setFormData({...formData, username: e.target.value})}
                   disabled={!!editingTutor}
                   className={editingTutor ? "bg-gray-100 cursor-not-allowed" : ""}
+                  required={!editingTutor}
                 />
                 {editingTutor && (
                   <p className="text-xs text-gray-500">El nombre de usuario no puede modificarse</p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
                 <Input 
                   id="email" 
                   type="email" 
                   placeholder="tutor@universidad.edu" 
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  required
                 />
               </div>
               
               {/* Campo contraseña solo visible al CREAR (no al editar) */}
               {!editingTutor && (
                 <div className="space-y-2">
-                  <Label htmlFor="password">Contraseña</Label>
+                  <Label htmlFor="password">Contraseña <span className="text-red-500">*</span></Label>
                   <Input 
                     id="password" 
                     type="password" 
@@ -248,21 +299,24 @@ export function TutorManagement() {
                     value={formData.password}
                     onChange={(e) => setFormData({...formData, password: e.target.value})}
                     required
+                    minLength={6}
                   />
+                  <p className="text-xs text-gray-500">Mínimo 6 caracteres</p>
                 </div>
               )}
               
               <div className="space-y-2">
-                <Label htmlFor="specialty">Especialidad</Label>
+                <Label htmlFor="specialty">Especialidad <span className="text-red-500">*</span></Label>
                 <Input 
                   id="specialty" 
                   placeholder="Ej: Desarrollo de Software" 
                   value={formData.specialty}
                   onChange={(e) => setFormData({...formData, specialty: e.target.value})}
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="maxStudents">Máximo de Estudiantes</Label>
+                <Label htmlFor="maxStudents">Máximo de Estudiantes <span className="text-red-500">*</span></Label>
                 <Input 
                   id="maxStudents" 
                   type="number" 
@@ -270,13 +324,14 @@ export function TutorManagement() {
                   max="50"
                   value={formData.maxStudents}
                   onChange={(e) => setFormData({...formData, maxStudents: parseInt(e.target.value)})}
+                  required
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="career">Carrera (Opcional)</Label>
                 <Select 
                   value={formData.careerId > 0 ? formData.careerId.toString() : "0"} 
-                  onValueChange={(value) => setFormData({...formData, careerId: parseInt(value)})}
+                  onValueChange={(value: string) => setFormData({...formData, careerId: parseInt(value)})}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona una carrera" />
@@ -291,18 +346,19 @@ export function TutorManagement() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex gap-2">
-                <Button 
-                  className="bg-blue-800 hover:bg-blue-900" 
-                  onClick={handleSaveTutor}
-                >
-                  {editingTutor ? 'Actualizar' : 'Guardar'}
-                </Button>
-                <Button variant="outline" onClick={handleCloseDialog}>
-                  Cancelar
-                </Button>
-              </div>
-            </div>
+            </form>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={handleCloseDialog} type="button">
+                Cancelar
+              </Button>
+              <Button 
+                className="bg-blue-800 hover:bg-blue-900" 
+                onClick={handleSaveTutor}
+                type="button"
+              >
+                {editingTutor ? 'Actualizar' : 'Guardar'}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 
@@ -331,6 +387,7 @@ export function TutorManagement() {
                   <TableHead>Tutor</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Especialidad</TableHead>
+                  <TableHead>Carrera</TableHead>
                   <TableHead>Estudiantes</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Acciones</TableHead>
@@ -339,13 +396,13 @@ export function TutorManagement() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       Cargando tutores...
                     </TableCell>
                   </TableRow>
                 ) : filteredTutors.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                       No se encontraron tutores
                     </TableCell>
                   </TableRow>
@@ -356,6 +413,11 @@ export function TutorManagement() {
                         <TableCell className="font-medium">{tutor.nombre} {tutor.apellido}</TableCell>
                         <TableCell>{tutor.email}</TableCell>
                         <TableCell>{tutor.specialty}</TableCell>
+                        <TableCell>
+                          <span className="text-sm text-gray-600">
+                            {tutor.careerName || 'Todas las carreras'}
+                          </span>
+                        </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <span className="text-gray-600">

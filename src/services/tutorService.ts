@@ -124,9 +124,14 @@ export const rejectEvidence = async (evidenceId: number, reason: string) => {
 // EVALUACIONES
 // ============================================================================
 
+export const getMyEvaluations = async (): Promise<Evaluation[]> => {
+  const { data } = await apiClient.get(API_ENDPOINTS.TUTOR.EVALUATIONS);
+  return Array.isArray(data) ? data : (data?.data || []);
+};
+
 export const getStudentEvaluations = async (studentId: number): Promise<Evaluation[]> => {
   const { data } = await apiClient.get(API_ENDPOINTS.TUTOR.STUDENT_EVALUATIONS(studentId));
-  return data;
+  return Array.isArray(data) ? data : (data?.data || []);
 };
 
 export const createEvaluation = async (evaluationData: EvaluationFormData): Promise<Evaluation> => {
@@ -134,7 +139,6 @@ export const createEvaluation = async (evaluationData: EvaluationFormData): Prom
   return data;
 };
 
-export const updateEvaluation = async (evaluationId: number, evaluationData: Partial<EvaluationFormData>): Promise<Evaluation> => {
-  const { data } = await apiClient.put(API_ENDPOINTS.TUTOR.EVALUATION_BY_ID(evaluationId), evaluationData);
-  return data;
+export const deleteEvaluation = async (evaluationId: number): Promise<void> => {
+  await apiClient.delete(API_ENDPOINTS.TUTOR.EVALUATION_BY_ID(evaluationId));
 };

@@ -67,8 +67,12 @@ export const API_ENDPOINTS = {
     AGREEMENTS: '/v1/admin/agreements',
     ASSIGNMENTS: '/v1/admin/assignments',
     ASSIGNMENT_BY_ID: (id: number) => `/v1/admin/assignments/${id}`,
-    CAREERS: '/v1/admin/careers',
-    CAREER_BY_ID: (id: number) => `/v1/admin/careers/${id}`,
+  },
+
+  // Carreras (público - sin autenticación)
+  CAREERS: {
+    ALL: '/v1/careers',
+    BY_ID: (id: number) => `/v1/careers/${id}`,
   },
 
   // Dashboard/Estadísticas
